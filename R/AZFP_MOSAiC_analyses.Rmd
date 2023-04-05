@@ -117,8 +117,8 @@ SV200 <- read_delim("data/200Khz_allcells_SNR10_IR_clean_06dec2021.sv.csv", skip
   select(-first(starts_with("'X")), -last(starts_with("'X"))) %>% 
   # Convert range and Sv to long format
   pivot_longer(starts_with("'X"), names_to = "Range_m", values_to = "Sv_200", values_transform = list(Sv_200 = as.character)) %>% 
-  mutate(Range_m = as.double(str_remove_all(str_remove(Range_m, "X"), "'")),
-         Sv_200 = as.double(Sv_200)) %>% 
+  mutate(Range_m = as.numeric(str_remove_all(str_remove(Range_m, "X"), "'")),
+         Sv_200 = as.numeric(Sv_200)) %>% 
   # Convert date to POSIXCt
   unite(Date, Ping_date, Ping_time) %>% 
   mutate(Date = ymd_hms(Date, tz = "UTC")) %>% 
@@ -166,8 +166,8 @@ SV455 <- read_delim("data/455Khz_allcells_SNR10_IR_clean_06dec2021.sv.csv", skip
   select(-first(starts_with("'X")), -last(starts_with("'X"))) %>% 
   # Convert range and Sv to long format
   pivot_longer(starts_with("'X"), names_to = "Range_m", values_to = "Sv_455", values_transform = list(Sv_455 = as.character)) %>% 
-  mutate(Range_m = as.double(str_remove_all(str_remove(Range_m, "X"), "'")),
-         Sv_455 = as.double(Sv_455)) %>% 
+  mutate(Range_m = as.numeric(str_remove_all(str_remove(Range_m, "X"), "'")),
+         Sv_455 = as.numeric(Sv_455)) %>% 
   # Convert date to POSIXCt
   unite(Date, Ping_date, Ping_time) %>% 
   mutate(Date = ymd_hms(Date, tz = "UTC")) %>% 
