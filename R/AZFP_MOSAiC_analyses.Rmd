@@ -275,10 +275,10 @@ Apply dB differencing to the data following [Darnis et al. 2017](https://aslopub
 
 ```{r dB-differencing}
 SV_classified <- SV_1m %>% 
-  mutate(Classification = factor(case_when(Sv_125_mean <= Sv_200_mean & Sv_125_mean <= Sv_455_mean & Sv_200_mean <= Sv_455_mean ~ "Copepod",
-                                           Sv_125_mean <= Sv_455_mean & is.na(Sv_200_mean) == T ~ "Copepod",
-                                           Sv_200_mean <= Sv_455_mean & is.na(Sv_125_mean) == T ~ "Copepod",
-                                           is.na(Sv_125_mean) == T & is.na(Sv_200_mean) == T & is.na(Sv_455_mean) == F ~ "Copepod",
+  mutate(Classification = factor(case_when(Sv_125_mean <= Sv_200_mean & Sv_125_mean <= Sv_455_mean & Sv_200_mean <= Sv_455_mean ~ "Copepods",
+                                           Sv_125_mean <= Sv_455_mean & is.na(Sv_200_mean) == T ~ "Copepods",
+                                           Sv_200_mean <= Sv_455_mean & is.na(Sv_125_mean) == T ~ "Copepods",
+                                           is.na(Sv_125_mean) == T & is.na(Sv_200_mean) == T & is.na(Sv_455_mean) == F ~ "Copepods",
                                            Sv_125_mean <= Sv_200_mean & Sv_125_mean <= Sv_455_mean & Sv_200_mean >= Sv_455_mean ~ "Chaetognath",
                                            Sv_125_mean <= Sv_200_mean & Sv_125_mean >= Sv_455_mean & Sv_200_mean >= Sv_455_mean ~ "Chaetognath",
                                            Sv_125_mean <= Sv_200_mean & is.na(Sv_455_mean) == T ~ "Chaetognath",
@@ -295,13 +295,19 @@ SV_classified <- SV_1m %>%
 Plot
 
 ```{r plot-classfied}
-SV_classified %>% 
+echo_classified <- SV_classified %>% 
+  mutate(Classification = factor(case_when(Classification %in% c("Chaetognath", "Euphausiid", "Unknown") ~ "Other zooplankton",
+                                           TRUE ~ Classification),
+                                 levels = c("Copepods", "Other zooplankton", "Empty water"))) %>% 
   ggplot() +
   geom_tile(aes(x = Date, y = Range_m, fill = Classification, color = Classification)) + 
-  scale_color_manual(values = c("#EE4266", "#FFD23F", "#F3FCF0", "#540D6E", "#1F271B")) +
-  scale_fill_manual(values = c("#EE4266", "#FFD23F", "#F3FCF0", "#540D6E", "#1F271B")) +
+  scale_color_manual(values = c("#FFD23F", "#540D6E", "#F3FCF0")) +
+  scale_fill_manual(values = c("#FFD23F", "#540D6E", "#F3FCF0")) +
   scale_x_datetime(date_breaks = "month", date_labels = "%b") + 
-  scale_y_reverse()
+  scale_y_reverse("Range (m)", limits = c(51, 0)) + 
+  coord_cartesian(expand = F)
+ggsave("plots/echogram_classified.png", echo_classified, bg = "transparent", width = 6.5, height = 3, units = "in", dpi = 600)
+echo_classified
 ```
 
 Summary table.

@@ -40,6 +40,7 @@ vignettes/*.pdf
 
 # Folders
 /data
+/plots
 
 # Specific extensions
 *.html
