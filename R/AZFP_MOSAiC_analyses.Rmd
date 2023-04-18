@@ -312,8 +312,9 @@ echo_classified
 
 Plot with no data gaps.
 
-```{r plot-classfied}
+```{r plot-classfied2}
 echo_classified2 <- SV_classified %>% 
+  filter(between(Date, ymd_hms("2020-09-18 00:00:00", tz = "UTC"), ymd_hms("2021-04-02 00:00:00", tz = "UTC"))) %>% 
   mutate(Classification = factor(case_when(Classification %in% c("Chaetognath", "Euphausiid", "Unknown") ~ "Other zooplankton",
                                            TRUE ~ Classification),
                                  levels = c("Copepods", "Other zooplankton", "Empty water")),
@@ -331,7 +332,7 @@ echo_classified2
 
 Plot with no data gaps.
 
-```{r plot-classfied}
+```{r plot-classfied3}
 echo_classified3 <- SV_classified %>% 
   mutate(Classification = factor(case_when(Classification %in% c("Chaetognath", "Euphausiid", "Unknown") ~ "Other zooplankton",
                                            TRUE ~ Classification),
