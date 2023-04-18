@@ -310,7 +310,46 @@ ggsave("plots/echogram_classified.png", echo_classified, bg = "transparent", wid
 echo_classified
 ```
 
-Summary table.
+Plot with no data gaps.
+
+```{r plot-classfied}
+echo_classified2 <- SV_classified %>% 
+  mutate(Classification = factor(case_when(Classification %in% c("Chaetognath", "Euphausiid", "Unknown") ~ "Other zooplankton",
+                                           TRUE ~ Classification),
+                                 levels = c("Copepods", "Other zooplankton", "Empty water")),
+         Date = as_date(Date)) %>% 
+  ggplot() +
+  geom_tile(aes(x = Date, y = Range_m, fill = Classification, color = Classification)) + 
+  scale_color_manual(values = c("#FFD23F", "#540D6E", "#F3FCF0")) +
+  scale_fill_manual(values = c("#FFD23F", "#540D6E", "#F3FCF0")) +
+  scale_x_date(date_breaks = "month", date_labels = "%d %b") +
+  scale_y_reverse("Range (m)", limits = c(51, 0)) + 
+  coord_cartesian(expand = F)
+ggsave("plots/echogram_classified_day.png", echo_classified2, bg = "transparent", width = 6.5, height = 3, units = "in", dpi = 600)
+echo_classified2
+```
+
+Plot with no data gaps.
+
+```{r plot-classfied}
+echo_classified3 <- SV_classified %>% 
+  mutate(Classification = factor(case_when(Classification %in% c("Chaetognath", "Euphausiid", "Unknown") ~ "Other zooplankton",
+                                           TRUE ~ Classification),
+                                 levels = c("Copepods", "Other zooplankton", "Empty water")),
+         Date = factor(Date)) %>%
+  ggplot() +
+  geom_tile(aes(x = Date, y = Range_m, fill = Classification, color = Classification)) + 
+  scale_color_manual(values = c("#FFD23F", "#540D6E", "#F3FCF0")) +
+  scale_fill_manual(values = c("#FFD23F", "#540D6E", "#F3FCF0")) +
+  scale_x_discrete(breaks = c("2020-10-01 03:56:43", "2020-11-01 02:53:38", "2020-12-01 02:52:13", "2021-01-01 03:51:00", "2021-02-01 03:50:11",
+                              "2021-03-01 03:47:45", "2021-04-01 03:46:20", "2021-05-01 03:45:46"),
+                   labels = c("1 Oct", "1 Nov", "1 Dec", "1 Jan", "1 Feb", "1 Mar", "1 Apr", "1 May")) +
+  scale_y_reverse("Range (m)", limits = c(51, 0)) + 
+  coord_cartesian(expand = F)
+ggsave("plots/echogram_classified_full.png", echo_classified3,  width = 6.5, height = 3, units = "in", dpi = 600)
+echo_classified3
+```
+
 
 ```{r table-classified}
 SV_classified %>% 
