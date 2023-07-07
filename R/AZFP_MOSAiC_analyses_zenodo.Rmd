@@ -1,0 +1,291 @@
+---
+title: "MOSAiC - AZFP multifrequency analysis"
+author: "Pierre Priou - ppr@akvaplan.niva.no"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    code_folding: show
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+---
+
+# Aim
+
+This document synthesizes the code used to analyse the AZFP data collected during the MOSAiC expedition. 
+
+# Packages required
+
+```{r load-packages, message=FALSE}
+library(tidyverse)  # Tidy coding
+library(lubridate)  # Deals with dates
+library(lemon)      # Facets with ticks
+```
+
+Set theme for plots.
+
+```{r update-theme}
+theme_set(theme_bw())
+theme_update(strip.text.x = element_text(face = "plain", hjust = 0.5),
+             strip.background = element_rect(colour = "transparent",  fill = "transparent"),
+             panel.grid = element_blank(),
+             legend.margin = margin(0, 0, 0, 0),
+             legend.box.margin = margin(0, 0, -8, 0),
+             plot.margin = unit(c(0.05, 0.05, 0.05, 0.05), "in"))
+```
+
+# Data processing
+
+## Load data
+
+Load cleaned Sv data at collected at 125, 200, and 455 kHz.
+
+### 125 kHz
+
+```{r 125-kHz, warning=FALSE}
+# Read headers
+headers <- read_delim("data/125Khz_allcells_SNR10_IR_clean_06dec2021.sv.csv", n_max = 1, col_names = F, show_col_types = F) %>% 
+  unite(col_names, starts_with("X"), sep = ",") %>% 
+  mutate(col_names = str_split(col_names, pattern = ",")) %>% 
+  deframe() %>% 
+  unlist()
+
+# Depth intervals for headers
+depth_intervals <- read_delim("data/125Khz_allcells_SNR10_IR_clean_06dec2021.sv.csv", n_max = 1, show_col_types = F) %>% 
+  # Extract number of depth bins
+  mutate(Samples = as.numeric(str_remove(str_extract(Sample_count, pattern = "[0-9]{3},"), ","))) %>% 
+  # Calculate depth bins
+  mutate(Depth_bins = list(paste0("'X", as.character(seq(Range_start, Range_stop, length.out = Samples)), "'"))) %>% 
+  select(Depth_bins) %>% 
+  deframe() %>% 
+  unlist()
+
+# Tidy column names
+colnames <- c(headers, depth_intervals)
+
+SV125 <- read_delim("data/125Khz_allcells_SNR10_IR_clean_06dec2021.sv.csv", skip = 1, col_names = colnames, show_col_types = F) %>% 
+  # Remove first and last column that have no values
+  select(-first(starts_with("'X")), -last(starts_with("'X"))) %>% 
+  # Convert range and Sv to long format
+  pivot_longer(starts_with("'X"), names_to = "Range_m", values_to = "Sv_125", values_transform = list(Sv_125 = as.character)) %>% 
+  mutate(Range_m = as.numeric(str_remove_all(str_remove(Range_m, "X"), "'")),
+         Sv_125 = as.numeric(Sv_125)) %>% 
+  # Convert date to POSIXCt
+  unite(Date, Ping_date, Ping_time) %>% 
+  mutate(Date = ymd_hms(Date, tz = "UTC")) %>% 
+  # Select relevant dates
+  select(-Ping_milliseconds, -starts_with("Depth"), -starts_with("Distance"), -Range_start, -Range_stop, -Sample_count)
+
+# Remove variables
+rm(headers, depth_intervals, colnames)
+```
+
+Check for NAs in the dataset.
+
+```{r 125-NAs}
+SV125 %>% 
+  summary()
+```
+
+### 200 kHz
+
+```{r 200-kHz, warning=FALSE}
+# Read headers
+headers <- read_delim("data/200Khz_allcells_SNR10_IR_clean_06dec2021.sv.csv", n_max = 1, col_names = F, show_col_types = F) %>% 
+  unite(col_names, starts_with("X"), sep = ",") %>% 
+  mutate(col_names = str_split(col_names, pattern = ",")) %>% 
+  deframe() %>% 
+  unlist()
+
+# Depth intervals for headers
+depth_intervals <- read_delim("data/200Khz_allcells_SNR10_IR_clean_06dec2021.sv.csv", n_max = 1, show_col_types = F) %>% 
+  # Extract number of depth bins
+  mutate(Samples = as.numeric(str_remove(str_extract(Sample_count, pattern = "[0-9]{3},"), ","))) %>% 
+  # Calculate depth bins
+  mutate(Depth_bins = list(paste0("'X", as.character(seq(Range_start, Range_stop, length.out = Samples)), "'"))) %>% 
+  select(Depth_bins) %>% 
+  deframe() %>% 
+  unlist()
+
+# Tidy column names
+colnames <- c(headers, depth_intervals)
+
+SV200 <- read_delim("data/200Khz_allcells_SNR10_IR_clean_06dec2021.sv.csv", skip = 1, col_names = colnames, show_col_types = F) %>% 
+  # Remove first and last column that have no values
+  select(-first(starts_with("'X")), -last(starts_with("'X"))) %>% 
+  # Convert range and Sv to long format
+  pivot_longer(starts_with("'X"), names_to = "Range_m", values_to = "Sv_200", values_transform = list(Sv_200 = as.character)) %>% 
+  mutate(Range_m = as.numeric(str_remove_all(str_remove(Range_m, "X"), "'")),
+         Sv_200 = as.numeric(Sv_200)) %>% 
+  # Convert date to POSIXCt
+  unite(Date, Ping_date, Ping_time) %>% 
+  mutate(Date = ymd_hms(Date, tz = "UTC")) %>% 
+  # Select relevant dates
+  select(-Ping_milliseconds, -starts_with("Depth"), -starts_with("Distance"), -Range_start, -Range_stop, -Sample_count, -Latitude, -Longitude)
+
+# Remove variables
+rm(headers, depth_intervals, colnames)
+```
+
+Check for NAs in the dataset.
+
+```{r 200-NAs}
+SV200 %>% 
+  summary()
+```
+
+### 455 kHz
+
+```{r 455-kHz, warning=FALSE}
+# Read headers
+headers <- read_delim("data/455Khz_allcells_SNR10_IR_clean_06dec2021.sv.csv", n_max = 1, col_names = F, show_col_types = F) %>% 
+  unite(col_names, starts_with("X"), sep = ",") %>% 
+  mutate(col_names = str_split(col_names, pattern = ",")) %>% 
+  deframe() %>% 
+  unlist()
+
+# Depth intervals for headers
+depth_intervals <- read_delim("data/455Khz_allcells_SNR10_IR_clean_06dec2021.sv.csv", n_max = 1, show_col_types = F) %>% 
+  # Extract number of depth bins
+  mutate(Samples = as.numeric(str_remove(str_extract(Sample_count, pattern = "[0-9]{3},"), ","))) %>% 
+  # Calculate depth bins
+  mutate(Depth_bins = list(paste0("'X", as.character(seq(Range_start, Range_stop, length.out = Samples)), "'"))) %>% 
+  select(Depth_bins) %>% 
+  deframe() %>% 
+  unlist()
+
+# Tidy column names
+colnames <- c(headers, depth_intervals)
+
+SV455 <- read_delim("data/455Khz_allcells_SNR10_IR_clean_06dec2021.sv.csv", skip = 1, col_names = colnames, show_col_types = F) %>% 
+  # Remove first and last column that have no values
+  select(-first(starts_with("'X")), -last(starts_with("'X"))) %>% 
+  # Convert range and Sv to long format
+  pivot_longer(starts_with("'X"), names_to = "Range_m", values_to = "Sv_455", values_transform = list(Sv_455 = as.character)) %>% 
+  mutate(Range_m = as.numeric(str_remove_all(str_remove(Range_m, "X"), "'")),
+         Sv_455 = as.numeric(Sv_455)) %>% 
+  # Convert date to POSIXCt
+  unite(Date, Ping_date, Ping_time) %>% 
+  mutate(Date = ymd_hms(Date, tz = "UTC")) %>% 
+  # Select relevant dates
+  select(-Ping_milliseconds, -starts_with("Depth"), -starts_with("Distance"), -Range_start, -Range_stop, -Sample_count, -Latitude, -Longitude)
+
+# Remove variables
+rm(headers, depth_intervals, colnames)
+```
+
+Check for NAs in the dataset.
+
+```{r 455-NAs}
+SV455 %>% 
+  summary()
+```
+
+## Data tidying
+
+Because the vertical resolution of the 125 kHz data is different, I calculate the mean Sv for cells of 1 m height. The pulse length was set to 500 µs so analytical cells cannot be thinner than ca. 75 cm (time for the pulse to transmit through the water column assuming a sound speed of 1450 m.s^-1^).
+
+```{r 1m-gridded-data}
+# 125 kHz
+SV125_1m <- SV125 %>% 
+  # Floor range and set -999 to NaN (empty water)
+  mutate(Range_m = floor(Range_m), 
+         Sv_125 = if_else(Sv_125 == -999, NaN, Sv_125)) %>% 
+  # Calculate mean SV per 1 m range (in linear then convert back to dB)
+  group_by(Ping_index, Date, Latitude, Longitude, Range_m) %>% 
+  summarise(Sv_125_mean = 10 * log10(mean(10 ^ (Sv_125 / 10), na.rm = T))) %>% 
+  ungroup() %>% 
+  # Set -Inf values to NaN (empty water)
+  mutate(Sv_125_mean = if_else(Sv_125_mean == -Inf, NaN, Sv_125_mean),
+         Sv_125_mean = if_else(is.na(Sv_125_mean) == T, NaN, Sv_125_mean))
+
+# 200 kHz
+SV200_1m <- SV200 %>% 
+  # Floor range and set -999 to NaN (empty water)
+  mutate(Range_m = floor(Range_m),
+         Sv_200 = if_else(Sv_200 == -999, NaN, Sv_200)) %>% 
+  # Calculate mean SV per 1 m range (in linear then convert back to dB)
+  group_by(Ping_index, Date, Range_m) %>% 
+  summarise(Sv_200_mean = 10 * log10(mean(10 ^ (Sv_200 / 10), na.rm = T))) %>% 
+  ungroup() %>% 
+  # Set -Inf values to NaN (empty water)
+  mutate(Sv_200_mean = if_else(Sv_200_mean == -Inf, NaN, Sv_200_mean),
+         Sv_200_mean = if_else(is.na(Sv_200_mean) == T, NaN, Sv_200_mean))
+
+# 455 kHz
+SV455_1m <- SV455 %>% 
+  # Floor range and set -999 to NaN (empty water)
+  mutate(Range_m = floor(Range_m),
+         Sv_455 = if_else(Sv_455 == -999, NaN, Sv_455)) %>% 
+  # Calculate mean SV per 1 m range (in linear then convert back to dB)
+  group_by(Ping_index, Date, Range_m) %>% 
+  summarise(Sv_455_mean = 10 * log10(mean(10 ^ (Sv_455 / 10), na.rm = T))) %>% 
+  ungroup() %>% 
+  # Set -Inf and NAs values to NaN (empty water)
+  mutate(Sv_455_mean = if_else(Sv_455_mean == -Inf, NaN, Sv_455_mean),
+         Sv_455_mean = if_else(is.na(Sv_455_mean) == T, NaN, Sv_455_mean))
+```
+
+Combine Sv at all frequencies into a single dataframe and restrict range to 50 m.
+
+```{r combine-data}
+SV_1m <- left_join(SV125_1m, SV200_1m) %>% 
+  left_join(., SV455_1m) %>% 
+  filter(between(Range_m, 1, 50))
+```
+
+# dB differencing
+
+Apply dB differencing to the data following [Darnis et al. 2017](https://aslopubs.onlinelibrary.wiley.com/doi/pdf/10.1002/lno.10519). This algorithm partitions the data into three taxonomic classes based on their relative frequency response:
+
+* Copepods: Sv~125~ < Sv~200~ < Sv~455~
+* Chaetognaths: Sv~125~ < Sv~200~ > Sv~455~
+* Euphausiids: Sv~125v > Sv~200~ < Sv~455~
+
+```{r dB-differencing}
+SV_classified <- SV_1m %>% 
+  mutate(Classification = factor(case_when(Sv_125_mean <= Sv_200_mean & Sv_125_mean <= Sv_455_mean & Sv_200_mean <= Sv_455_mean ~ "Copepods",
+                                           Sv_125_mean <= Sv_455_mean & is.na(Sv_200_mean) == T ~ "Copepods",
+                                           Sv_200_mean <= Sv_455_mean & is.na(Sv_125_mean) == T ~ "Copepods",
+                                           is.na(Sv_125_mean) == T & is.na(Sv_200_mean) == T & is.na(Sv_455_mean) == F ~ "Copepods",
+                                           Sv_125_mean <= Sv_200_mean & Sv_125_mean <= Sv_455_mean & Sv_200_mean >= Sv_455_mean ~ "Other zooplankton",
+                                           Sv_125_mean <= Sv_200_mean & Sv_125_mean >= Sv_455_mean & Sv_200_mean >= Sv_455_mean ~ "Other zooplankton",
+                                           Sv_125_mean <= Sv_200_mean & is.na(Sv_455_mean) == T ~ "Other zooplankton",
+                                           Sv_200_mean >= Sv_455_mean & is.na(Sv_125_mean) == T ~ "Other zooplankton",
+                                           is.na(Sv_125_mean) == T & is.na(Sv_200_mean) == F & is.na(Sv_455_mean) == T ~ "Other zooplankton",
+                                           Sv_125_mean >= Sv_200_mean & Sv_125_mean <= Sv_455_mean & Sv_200_mean <= Sv_455_mean ~ "Other zooplankton",
+                                           Sv_125_mean >= Sv_200_mean & Sv_125_mean >= Sv_455_mean & Sv_200_mean <= Sv_455_mean ~ "Other zooplankton",
+                                           Sv_125_mean >= Sv_455_mean & is.na(Sv_200_mean) == T ~ "Other zooplankton",
+                                           Sv_125_mean <= Sv_455_mean & is.na(Sv_200_mean) == T ~ "Other zooplankton",
+                                           is.na(Sv_125_mean) == T & is.na(Sv_200_mean) == T & is.na(Sv_455_mean) == T ~ "Empty water",
+                                           TRUE ~ "Other zooplankton"),
+                                  levels = c("Copepods", "Other zooplankton", "Empty water")))
+```
+
+Plot with no data gaps.
+
+```{r plot-classfied-echogram}
+echo_classified <- SV_classified %>% 
+  filter(between(Date, ymd_hms("2020-09-18 00:00:00", tz = "UTC"), ymd_hms("2021-04-02 00:00:00", tz = "UTC"))) %>% 
+  mutate(Date = as_date(Date)) %>% 
+  ggplot() +
+  geom_tile(aes(x = Date, y = Range_m, fill = Classification, color = Classification)) + 
+  scale_color_manual(values = c("#FFD23F", "#540D6E", "#F3FCF0")) +
+  scale_fill_manual(values = c("#FFD23F", "#540D6E", "#F3FCF0")) +
+  scale_x_date(date_breaks = "month", date_labels = "%d %b") +
+  scale_y_reverse("Range (m)", limits = c(51, 0)) + 
+  coord_cartesian(expand = F)
+ggsave("plots/echogram_classified_day.png", echo_classified, bg = "transparent", width = 6.5, height = 3, units = "in", dpi = 600)
+echo_classified
+```
+
+Summary
+
+```{r table-classified}
+SV_classified %>% 
+  filter(Classification != "Empty water") %>% 
+  group_by(Classification) %>% 
+  summarise(total = n()) %>% 
+  ungroup() %>% 
+  mutate(percent_of_cells = round(total / sum(total) * 100, 2))
+```
